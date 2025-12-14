@@ -59,7 +59,7 @@ async def login(
         httponly=True, 
         max_age=30*24*60*60,
         samesite="lax",
-        secure=False  # Установите True для HTTPS
+        secure=True  # For HTTPS
     )
     return response
 
@@ -129,7 +129,7 @@ async def register(
         )
         
         response = RedirectResponse(url="/dashboard", status_code=status.HTTP_303_SEE_OTHER)
-        response.set_cookie(key="access_token", value=access_token, httponly=True, max_age=30*24*60*60)
+        response.set_cookie(key="access_token", value=access_token, httponly=True, max_age=30*24*60*60, samesite="lax", secure=True)
         return response
     except Exception as e:
         import traceback
