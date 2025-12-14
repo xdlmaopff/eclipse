@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+
+{% block title %}Subscription History - HellNet Pro{% endblock %}
+
+{% block content %}
+<div class="min-h-screen p-6">
+    <div class="max-w-4xl mx-auto">
+        <h1 class="text-4xl font-bold neon-text text-purple-400 mb-8">Subscription History</h1>
+        
+        <div class="cyber-card p-6 rounded-lg">
+            <div class="space-y-4">
+                {% for req in requests %}
+                <div class="bg-black/30 p-4 rounded-lg border border-purple-500/20">
+                    <div class="flex justify-between items-center">
+                        <div>
+                            <p class="font-bold text-lg">{{ req.requested_tier.value|upper }}</p>
+                            <p class="text-sm text-gray-400 mt-1">{{ req.message }}</p>
+                            <p class="text-xs text-gray-500 mt-2">Requested: {{ req.created_at.strftime('%Y-%m-%d %H:%M') }}</p>
+                            {% if req.reviewed_at %}
+                            <p class="text-xs text-gray-500">Reviewed: {{ req.reviewed_at.strftime('%Y-%m-%d %H:%M') }}</p>
+                            {% endif %}
+                        </div>
+                        <span class="px-3 py-1 rounded text-xs
+                            {% if req.status.value == 'approved' %}bg-green-500/20 text-green-400
+                            {% elif req.status.value == 'rejected' %}bg-red-500/20 text-red-400
+                            {% else %}bg-yellow-500/20 text-yellow-400{% endif %}">
+                            {{ req.status.value|upper }}
+                        </span>
+                    </div>
+                    {% if req.admin_notes %}
+                    <div class="mt-2 p-2 bg-purple-500/10 rounded text-sm text-gray-300">
+                        Admin Notes: {{ req.admin_notes }}
+                    </div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

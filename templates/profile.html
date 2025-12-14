@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+
+{% block title %}Profile - HellNet Pro{% endblock %}
+
+{% block content %}
+<div class="min-h-screen p-6">
+    <div class="max-w-4xl mx-auto">
+        <h1 class="text-4xl font-bold neon-text text-purple-400 mb-8">Profile</h1>
+        
+        <div class="cyber-card p-6 rounded-lg mb-6">
+            <h2 class="text-2xl font-bold mb-4 text-purple-400">Account Information</h2>
+            <div class="space-y-4">
+                <div>
+                    <label class="text-sm text-gray-400">Username</label>
+                    <p class="text-lg">{{ user.username }}</p>
+                </div>
+                <div>
+                    <label class="text-sm text-gray-400">Email</label>
+                    <p class="text-lg">{{ user.email }}</p>
+                </div>
+                <div>
+                    <label class="text-sm text-gray-400">Subscription Plan</label>
+                    <p class="text-lg text-purple-400">{{ current_plan.name if current_plan else user.subscription_tier.value.title() }}</p>
+                </div>
+                <div>
+                    <label class="text-sm text-gray-400">Member Since</label>
+                    <p class="text-lg">{{ user.created_at.strftime('%Y-%m-%d') }}</p>
+                </div>
+            </div>
+            <div class="mt-6">
+                <a href="/profile/edit" class="btn-neon px-6 py-2 rounded-lg text-white inline-block">Edit Profile</a>
+            </div>
+        </div>
+        
+        <div class="cyber-card p-6 rounded-lg">
+            <h2 class="text-2xl font-bold mb-4 text-purple-400">Subscription Requests</h2>
+            <div class="space-y-4">
+                {% for req in subscription_requests %}
+                <div class="bg-black/30 p-4 rounded-lg border border-purple-500/20">
+                    <div class="flex justify-between items-center">
+                        <div>
+                            <p class="font-bold">{{ req.requested_tier.value|upper }}</p>
+                            <p class="text-sm text-gray-400">{{ req.message }}</p>
+                            <p class="text-xs text-gray-500 mt-2">{{ req.created_at.strftime('%Y-%m-%d %H:%M') }}</p>
+                        </div>
+                        <span class="px-3 py-1 rounded text-xs
+                            {% if req.status.value == 'approved' %}bg-green-500/20 text-green-400
+                            {% elif req.status.value == 'rejected' %}bg-red-500/20 text-red-400
+                            {% else %}bg-yellow-500/20 text-yellow-400{% endif %}">
+                            {{ req.status.value|upper }}
+                        </span>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

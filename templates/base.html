@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Eclipse{% endblock %}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <link rel="stylesheet" href="/static/css/custom.css">
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <!-- Animated Particles Background -->
+    <div class="particles">
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+    </div>
+
+    {% if user %}
+    <!-- Neon Navbar -->
+    <nav class="navbar">
+        <div class="flex justify-between items-center w-full">
+            <div class="flex items-center gap-6">
+                <button id="sidebar-toggle" class="text-2xl text-text-secondary hover:text-accent transition-all duration-300 hover:scale-105">
+                    <svg class="w-6 h-6 sidebar-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+                    </svg>
+                </button>
+                <h1 class="logo">Eclipse</h1>
+            </div>
+            <div class="flex items-center gap-6">
+                <div class="px-4 py-2 bg-bg-secondary rounded-full text-sm font-medium text-light-gray border border-accent-gray">
+                    {{ current_plan.name if current_plan else user.subscription_tier.value.title() }}
+                </div>
+                <div class="relative" x-data="{ open: false }">
+                    <button @click="open = !open" class="flex items-center gap-3 text-text-primary hover:text-accent transition-all duration-300 hover:scale-105">
+                        <div class="w-8 h-8 bg-gradient-to-br from-primary-gray to-secondary-gray rounded-full flex items-center justify-center text-bg-deep font-bold text-sm">
+                            {{ user.username[0].upper() }}
+                        </div>
+                        <span class="font-medium">{{ user.username }}</span>
+                        <svg class="w-4 h-4 transition-transform duration-300" :class="open ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                        </svg>
+                    </button>
+                    <div x-show="open" @click.away="open = false" x-cloak
+                        class="absolute right-0 mt-4 w-64 card fade-in border-accent-gray">
+                        <div class="py-3">
+                            <a href="/profile" class="block px-5 py-3 text-text-secondary hover:text-accent hover:bg-accent/10 transition-all duration-300 flex items-center gap-3">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                                </svg>
+                                Profile
+                            </a>
+                            <a href="/subscriptions/request" class="block px-5 py-3 text-text-secondary hover:text-accent hover:bg-accent/10 transition-all duration-300 flex items-center gap-3">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>
+                                </svg>
+                                Upgrade Plan
+                            </a>
+                            <hr class="border-accent-gray my-3">
+                            <a href="/auth/logout" class="block px-5 py-3 text-error-color hover:bg-error-color/10 transition-all duration-300 flex items-center gap-3">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
+                                </svg>
+                                Logout
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Mobile overlay -->
+    <div id="sidebar-overlay" class="fixed inset-0 bg-black bg-opacity-50 z-40 hidden" onclick="closeMobileSidebar()"></div>
+
+    <!-- Collapsible Sidebar -->
+    <aside id="sidebar" class="sidebar">
+        <nav class="p-6">
+            <div class="space-y-2">
+                <!-- Navigation Section -->
+                <div class="mb-8">
+                    <h3 class="text-text-muted text-xs font-bold uppercase tracking-wider mb-4 text-accent">Navigation</h3>
+                    <div onclick="scrollToSection('dashboard')" class="sidebar-item rounded-xl active cursor-pointer">
+                        <svg class="w-5 h-5 sidebar-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2-2z"></path>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5a2 2 0 012-2h4a2 2 0 012 2v0M8 5a2 2 0 012-2h4a2 2 0 012 2v0"></path>
+                        </svg>
+                        <span class="sidebar-text">Dashboard</span>
+                    </div>
+                    <div onclick="scrollToSection('sessions')" class="sidebar-item rounded-xl cursor-pointer">
+                        <svg class="w-5 h-5 sidebar-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path>
+                        </svg>
+                        <span class="sidebar-text">Sessions</span>
+                    </div>
+                    <div onclick="scrollToSection('tasks')" class="sidebar-item rounded-xl cursor-pointer">
+                        <svg class="w-5 h-5 sidebar-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+                        </svg>
+                        <span class="sidebar-text">Tasks</span>
+                    </div>
+                    <div onclick="scrollToSection('blacklist')" class="sidebar-item rounded-xl cursor-pointer">
+                        <svg class="w-5 h-5 sidebar-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 5.636l-12.728 12.728m0 0L5 5m6.364 12.728L19 7"></path>
+                        </svg>
+                        <span class="sidebar-text">Blacklist</span>
+                    </div>
+                    {% if user.subscription_tier.value == 'elite' %}
+                    <div onclick="scrollToSection('scripts')" class="sidebar-item rounded-xl cursor-pointer">
+                        <svg class="w-5 h-5 sidebar-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"></path>
+                        </svg>
+                        <span class="sidebar-text">Scripts</span>
+                    </div>
+                    {% endif %}
+                    <div onclick="scrollToSection('logs')" class="sidebar-item rounded-xl cursor-pointer">
+                        <svg class="w-5 h-5 sidebar-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                        </svg>
+                        <span class="sidebar-text">Logs</span>
+                    </div>
+                </div>
+
+
+                {% if user.subscription_tier.value == 'elite' %}
+                <div>
+                    <h3 class="text-text-muted text-xs font-bold uppercase tracking-wider mb-4 text-error-color">Elite</h3>
+                </div>
+                {% endif %}
+
+                {% if user.role.value == 'admin' %}
+                <div>
+                    <h3 class="text-text-muted text-xs font-bold uppercase tracking-wider mb-4 text-error-color">Admin</h3>
+                    <a href="/admin" class="sidebar-item rounded-xl">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
+                        </svg>
+                        <span class="sidebar-text">Admin Panel</span>
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </nav>
+    </aside>
+
+    <!-- Main Content Area -->
+    <div id="main-content" class="pt-24 transition-all duration-300 min-h-screen">
+        <div class="max-w-7xl mx-auto p-6">
+    {% endif %}
+
+    {% block content %}{% endblock %}
+
+    {% if user %}
+        </div>
+    {% endif %}
+
+    <script>
+        // Sidebar toggle functionality
+        document.getElementById('sidebar-toggle')?.addEventListener('click', function() {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('sidebar-overlay');
+
+            if (window.innerWidth >= 768) {
+                // Desktop behavior - toggle open class
+                sidebar.classList.toggle('open');
+                const main = document.getElementById('main-content');
+                const isOpen = sidebar.classList.contains('open');
+                if (isOpen) {
+                    main.classList.add('ml-72');
+                } else {
+                    main.classList.remove('ml-72');
+                }
+            } else {
+                // Mobile behavior - slide from bottom with overlay
+                const isOpen = sidebar.classList.contains('open');
+                if (isOpen) {
+                    closeMobileSidebar();
+                } else {
+                    sidebar.classList.add('open');
+                    overlay.classList.remove('hidden');
+                    document.body.style.overflow = 'hidden'; // Prevent background scroll
+                }
+            }
+        });
+
+        // Function to close mobile sidebar
+        function closeMobileSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('sidebar-overlay');
+            sidebar.classList.remove('open');
+            overlay.classList.add('hidden');
+            document.body.style.overflow = ''; // Restore scroll
+        }
+
+        // Responsive behavior on window resize
+        window.addEventListener('resize', function() {
+            const sidebar = document.getElementById('sidebar');
+            const main = document.getElementById('main-content');
+            const overlay = document.getElementById('sidebar-overlay');
+
+            if (window.innerWidth < 768) {
+                // Mobile: ensure sidebar is closed and main content doesn't have left margin
+                sidebar.classList.remove('open');
+                overlay.classList.add('hidden');
+                main.classList.remove('ml-72');
+                document.body.style.overflow = '';
+            } else {
+                // Desktop: close mobile overlay if open, and handle desktop sidebar
+                sidebar.classList.remove('open');
+                overlay.classList.add('hidden');
+                document.body.style.overflow = '';
+                if (sidebar.classList.contains('open')) {
+                    main.classList.add('ml-72');
+                }
+            }
+        });
+
+        // Task tab switching
+        function showTaskTab(tabName) {
+            // Hide all task forms
+            document.querySelectorAll('.task-tab').forEach(tab => {
+                tab.classList.add('hidden');
+                tab.classList.remove('fade-in');
+            });
+
+            // Show selected form
+            const form = document.getElementById(`task-tab-${tabName}`);
+            if (form) {
+                form.classList.remove('hidden');
+                setTimeout(() => form.classList.add('fade-in'), 10);
+            }
+
+            // Update active navigation button
+            document.querySelectorAll('[data-tab]').forEach(btn => btn.classList.remove('active'));
+            const activeBtn = document.querySelector(`[data-tab="${tabName}"]`);
+            if (activeBtn) {
+                activeBtn.classList.add('active');
+            }
+
+            // Update active sidebar item
+            updateActiveSidebar(`task-tab-${tabName}`);
+
+            // Close mobile sidebar after selection
+            if (window.innerWidth < 768) {
+                closeMobileSidebar();
+            }
+        }
+
+        // Scroll to section
+        function scrollToSection(sectionId) {
+            const element = document.getElementById(sectionId);
+            if (element) {
+                element.scrollIntoView({ behavior: 'smooth' });
+            }
+            updateActiveSidebar(sectionId);
+
+            // Close mobile sidebar after selection
+            if (window.innerWidth < 768) {
+                closeMobileSidebar();
+            }
+        }
+
+        // Update active sidebar item
+        function updateActiveSidebar(targetId) {
+            document.querySelectorAll('.sidebar-item.active').forEach(item => {
+                item.classList.remove('active');
+            });
+            // Find the sidebar item that corresponds to the target
+            const sidebarItems = document.querySelectorAll('.sidebar-item');
+            sidebarItems.forEach(item => {
+                if (item.onclick && item.onclick.toString().includes(targetId)) {
+                    item.classList.add('active');
+                } else if (item.getAttribute('href') === '/dashboard' && targetId === 'dashboard') {
+                    item.classList.add('active');
+                }
+            });
+        }
+
+        // Initialize on load
+        document.addEventListener('DOMContentLoaded', function() {
+            const sidebar = document.getElementById('sidebar');
+            const main = document.getElementById('main-content');
+            const overlay = document.getElementById('sidebar-overlay');
+
+            // Force sidebar to be visible for testing
+            if (window.innerWidth >= 768) {
+                // Desktop: sidebar open by default
+                sidebar.classList.add('open');
+                main.classList.add('ml-72');
+                overlay.classList.add('hidden');
+                console.log('Desktop sidebar initialized: open');
+            } else {
+                // Mobile: ensure sidebar and overlay are closed
+                sidebar.classList.remove('open');
+                overlay.classList.add('hidden');
+                main.classList.remove('ml-72');
+                document.body.style.overflow = '';
+                console.log('Mobile sidebar initialized: hidden');
+            }
+        });
+    </script>
+

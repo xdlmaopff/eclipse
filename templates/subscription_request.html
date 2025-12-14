@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+
+{% block title %}Request Subscription Upgrade - Eclipse{% endblock %}
+
+{% block content %}
+<div class="space-y-8">
+    <!-- Header -->
+    <div class="card fade-in text-center">
+        <h1 class="text-4xl font-bold text-accent mb-4">
+            Request Subscription Upgrade
+        </h1>
+        <p class="text-text-secondary text-lg mb-6">
+            Submit a request to upgrade your subscription plan
+        </p>
+    </div>
+
+    <!-- Request Form -->
+    <div class="card">
+        <form id="requestForm" class="space-y-6">
+            <div>
+                <label class="block text-text-primary font-medium mb-2">Select Plan</label>
+                <select name="tier" class="select w-full" required>
+                    {% for plan in plans %}
+                    <option value="{{ plan.tier.value }}">{{ plan.name }} - ${{ "%.2f"|format(plan.price_monthly) }}/month</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div>
+                <label class="block text-text-primary font-medium mb-2">Message (optional)</label>
+                <textarea name="message" class="textarea w-full" rows="4" placeholder="Tell us why you want to upgrade..."></textarea>
+            </div>
+
+            <button type="submit" class="btn-primary w-full">
+                Submit Request
+            </button>
+        </form>
+    </div>
+</div>
+
+<script>
+document.getElementById('requestForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const formData = new FormData(e.target);
+    
+    try {
+        const response = await fetch('/api/request-subscription', {
+            method: 'POST',
+            body: formData
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok) {
+            alert('Request submitted successfully!');
+            window.location.href = '/dashboard';
+        } else {
+            alert('Error: ' + (result.error || 'Failed to submit request'));
+        }
+    } catch (error) {
+        alert('Network error. Please try again.');
+    }
+});
+</script>
+{% endblock %}

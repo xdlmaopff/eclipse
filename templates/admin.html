@@ -1,0 +1,303 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Panel - Eclipse{% endblock %}
+
+{% block content %}
+<div class="space-y-8">
+    <!-- Welcome Section -->
+    <div class="card fade-in text-center">
+        <h1 class="text-4xl font-bold text-accent mb-4">
+            Admin Panel
+        </h1>
+        <p class="text-text-secondary text-lg mb-6">
+            Manage users, sessions, and subscriptions
+        </p>
+    </div>
+
+    <!-- Statistics Grid -->
+    <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div class="stat-card slide-in">
+            <div class="stat-number text-light-gray">{{ stats.total_users }}</div>
+            <div class="stat-label">Total Users</div>
+            <div class="w-full bg-bg-secondary rounded-full h-2 mt-3">
+                <div class="progress-bar" style="width: 100%"></div>
+            </div>
+        </div>
+        <div class="stat-card slide-in">
+            <div class="stat-number text-light-gray">{{ stats.total_sessions }}</div>
+            <div class="stat-label">Total Sessions</div>
+            <div class="w-full bg-bg-secondary rounded-full h-2 mt-3">
+                <div class="progress-bar" style="width: 85%"></div>
+            </div>
+        </div>
+        <div class="stat-card slide-in">
+            <div class="stat-number text-light-gray">{{ stats.total_tasks }}</div>
+            <div class="stat-label">Total Tasks</div>
+            <div class="w-full bg-bg-secondary rounded-full h-2 mt-3">
+                <div class="progress-bar" style="width: 92%"></div>
+            </div>
+        </div>
+        <div class="stat-card slide-in">
+            <div class="stat-number text-light-gray">{{ stats.total_reports }}</div>
+            <div class="stat-label">Total Reports</div>
+            <div class="w-full bg-bg-secondary rounded-full h-2 mt-3">
+                <div class="progress-bar" style="width: 78%"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Admin Actions -->
+    <div class="card">
+        <h2 class="text-2xl font-bold mb-4 text-accent-color">Danger Zone</h2>
+        <div class="flex gap-4">
+            <button onclick="resetStatistics()" class="btn-danger">
+                ⚠️ Reset All Statistics
+            </button>
+        </div>
+        <p class="text-sm text-text-muted mt-2">This will delete all tasks and reset all statistics. This action cannot be undone!</p>
+    </div>
+
+    <!-- Users Management -->
+    <div class="card">
+        <h2 class="text-2xl font-bold mb-4 text-accent-color">Users</h2>
+        <div class="overflow-x-auto">
+            <table class="w-full">
+                <thead>
+                    <tr class="border-b border-border-color">
+                        <th class="text-left py-3 text-text-secondary">Username</th>
+                        <th class="text-left py-3 text-text-secondary">Email</th>
+                        <th class="text-left py-3 text-text-secondary">Subscription</th>
+                        <th class="text-left py-3 text-text-secondary">Status</th>
+                        <th class="text-left py-3 text-text-secondary">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for user in users %}
+                    <tr class="border-b border-border-color/50">
+                        <td class="py-3">{{ user.username }}</td>
+                        <td class="py-3">{{ user.email }}</td>
+                        <td class="py-3">{{ user.subscription_tier.value|upper }}</td>
+                        <td class="py-3">
+                            <span class="px-2 py-1 rounded text-xs
+                                {% if user.is_active %}bg-success-color/20 text-success-color
+                                {% else %}bg-error-color/20 text-error-color{% endif %}">
+                                {% if user.is_active %}ACTIVE{% else %}BANNED{% endif %}
+                            </span>
+                        </td>
+                        <td class="py-3 flex gap-2">
+                            {% if user.is_active %}
+                            <button onclick="banUser('{{ user.id }}')" class="btn-danger btn-sm">Ban</button>
+                            {% else %}
+                            <button onclick="unbanUser('{{ user.id }}')" class="btn-success btn-sm">Unban</button>
+                            {% endif %}
+                            <select onchange="changeSubscription('{{ user.id }}', this.value)" class="select select-sm">
+                                {% for plan in plans %}
+                                <option value="{{ plan.tier.value }}" {% if user.subscription_tier == plan.tier %}selected{% endif %}>{{ plan.tier.value|upper }}</option>
+                                {% endfor %}
+                            </select>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- All Sessions -->
+    <div class="card">
+        <h2 class="text-2xl font-bold mb-4 text-accent-color">All Sessions</h2>
+        <div class="overflow-x-auto">
+            <table class="w-full">
+                <thead>
+                    <tr class="border-b border-border-color">
+                        <th class="text-left py-3 text-text-secondary">Filename</th>
+                        <th class="text-left py-3 text-text-secondary">User</th>
+                        <th class="text-left py-3 text-text-secondary">Status</th>
+                        <th class="text-left py-3 text-text-secondary">Created</th>
+                        <th class="text-left py-3 text-text-secondary">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for session in all_sessions %}
+                    <tr class="border-b border-border-color/50">
+                        <td class="py-3">{{ session.filename }}</td>
+                        <td class="py-3">{{ session.owner.username if session.owner else 'Unknown' }}</td>
+                        <td class="py-3">
+                            <span class="px-2 py-1 rounded text-xs
+                                {% if session.status.value == 'online' %}bg-success-color/20 text-success-color
+                                {% elif session.status.value == 'offline' %}bg-text-muted/20 text-text-muted
+                                {% else %}bg-error-color/20 text-error-color{% endif %}">
+                                {{ session.status.value|upper }}
+                            </span>
+                        </td>
+                        <td class="py-3 text-text-muted">{{ session.created_at.strftime('%Y-%m-%d') }}</td>
+                        <td class="py-3">
+                            <button onclick="deleteSession('{{ session.id }}')"
+                                class="btn-danger btn-sm">
+                                Delete
+                            </button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Subscription Requests -->
+    <div class="card">
+        <h2 class="text-2xl font-bold mb-4 text-accent-color">
+            Subscription Requests
+            <span class="text-sm text-accent">({{ pending_requests|length }} pending)</span>
+        </h2>
+        {% if pending_requests %}
+        <div class="space-y-4">
+            {% for req in pending_requests %}
+            <div class="bg-bg-secondary/50 p-4 rounded-lg border border-accent-gray">
+                <div class="flex justify-between items-start mb-3">
+                    <div>
+                        <h3 class="font-bold text-accent">{{ req.requested_tier.value|upper }}</h3>
+                        <p class="text-sm text-text-muted">Requested by: {{ req.user.username if req.user else 'Unknown' }}</p>
+                        <p class="text-sm text-text-muted">Email: {{ req.user.email if req.user else 'Unknown' }}</p>
+                        <p class="text-sm text-text-muted">Date: {{ req.created_at.strftime('%Y-%m-%d %H:%M') }}</p>
+                    </div>
+                    <span class="px-2 py-1 rounded text-xs bg-accent/20 text-accent">PENDING</span>
+                </div>
+                <div class="mb-3">
+                    <p class="text-sm font-medium mb-1">Message:</p>
+                    <p class="text-text-primary bg-bg-deep p-3 rounded">{{ req.message }}</p>
+                </div>
+                <div class="flex gap-3">
+                    <button onclick="approveRequest('{{ req.id }}')"
+                        class="btn-success">
+                        Approve
+                    </button>
+                    <button onclick="rejectRequest('{{ req.id }}')"
+                        class="btn-danger">
+                        Reject
+                    </button>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p class="text-text-muted">No pending requests</p>
+        {% endif %}
+    </div>
+
+    <!-- Plans Management -->
+    <div class="card">
+        <h2 class="text-2xl font-bold mb-4 text-accent-color">Subscription Plans</h2>
+        <div class="space-y-4">
+            {% for plan in plans %}
+            <div class="bg-bg-secondary/50 p-4 rounded-lg border border-accent-gray">
+                <div class="flex justify-between items-center mb-2">
+                    <input type="text" value="{{ plan.name }}"
+                        onchange="updateName('{{ plan.tier.value }}', this.value)"
+                        class="input flex-1 mr-2">
+                    <input type="number" value="{{ plan.price_monthly }}" step="0.01"
+                        onchange="updatePrice('{{ plan.tier.value }}', this.value)"
+                        class="input w-32">
+                </div>
+                <p class="text-text-muted text-sm">{{ plan.tier.value|upper }}</p>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<script>
+    async function banUser(userId) {
+        const res = await fetch(`/api/admin/ban-user/${userId}`, {method: 'POST'});
+        if (res.ok) location.reload();
+    }
+    
+    async function unbanUser(userId) {
+        const res = await fetch(`/api/admin/unban-user/${userId}`, {method: 'POST'});
+        if (res.ok) location.reload();
+    }
+    
+    async function updatePrice(planTier, newPrice) {
+        await fetch('/api/admin/update-plan-price', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({plan_tier: planTier, new_price: parseFloat(newPrice)})
+        });
+    }
+
+    async function updateName(planTier, newName) {
+        await fetch('/api/admin/update-plan-name', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({plan_tier: planTier, new_name: newName})
+        });
+    }
+    
+    async function approveRequest(requestId) {
+        if (!confirm('Approve this subscription request?')) return;
+        const formData = new FormData();
+        formData.append('admin_notes', '');
+        const res = await fetch(`/api/admin/approve-subscription-request/${requestId}`, {
+            method: 'POST',
+            body: formData
+        });
+        if (res.ok) {
+            alert('Subscription approved!');
+            location.reload();
+        }
+    }
+    
+    async function rejectRequest(requestId) {
+        const notes = prompt('Rejection reason (optional):');
+        const formData = new FormData();
+        formData.append('admin_notes', notes || '');
+        const res = await fetch(`/api/admin/reject-subscription-request/${requestId}`, {
+            method: 'POST',
+            body: formData
+        });
+        if (res.ok) {
+            alert('Request rejected');
+            location.reload();
+        }
+    }
+    
+    async function resetStatistics() {
+        if (!confirm('⚠️ WARNING: This will delete ALL tasks and reset ALL statistics!\n\nThis action CANNOT be undone!\n\nAre you absolutely sure?')) {
+            return;
+        }
+
+        // Двойное подтверждение
+        if (!confirm('Are you REALLY sure? All task history will be permanently deleted!')) {
+            return;
+        }
+
+        const res = await fetch('/api/admin/reset-statistics', {
+            method: 'POST'
+        });
+
+        const data = await res.json();
+
+        if (res.ok) {
+            alert('✅ ' + data.message);
+            location.reload();
+        } else {
+            alert('❌ Error: ' + (data.detail || 'Failed to reset statistics'));
+        }
+    }
+
+    async function deleteSession(sessionId) {
+        if (!confirm('Delete this session?')) return;
+        const res = await fetch(`/api/admin/delete-session/${sessionId}`, {method: 'DELETE'});
+        if (res.ok) location.reload();
+    }
+
+    async function changeSubscription(userId, tier) {
+        const res = await fetch('/api/admin/change-subscription', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({user_id: userId, subscription_tier: tier})
+        });
+        if (res.ok) location.reload();
+    }
+</script>
+{% endblock %}

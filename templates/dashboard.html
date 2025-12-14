@@ -1,0 +1,1266 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Eclipse{% endblock %}
+
+{% block extra_css %}
+<style>
+.btn.active {
+    background: linear-gradient(135deg, #ff6b6b, #ee5a24) !important;
+    box-shadow: 0 0 20px rgba(255, 107, 107, 0.3) !important;
+    color: white !important;
+    border-color: #ff6b6b !important;
+}
+</style>
+{% endblock %}
+
+
+{% block content %}
+<div class="space-y-8">
+    <!-- Welcome Section -->
+    <div id="dashboard" class="card fade-in text-center">
+        <h1 class="text-4xl font-bold text-accent mb-4">
+            Welcome back, <span class="text-accent">{{ user.username }}</span>!
+        </h1>
+        <p class="text-text-secondary text-lg mb-6">
+            Current Plan: <span class="font-bold text-light-gray">{{ current_plan.name if current_plan else user.subscription_tier.value.title() }}</span>
+        </p>
+        <div class="flex justify-center gap-8 text-sm">
+            <div class="bg-bg-secondary/50 px-4 py-2 rounded-lg border border-accent-gray">
+                <span class="text-light-gray font-bold">{{ stats.sessions_count }}</span> Active Sessions
+            </div>
+            <div class="bg-bg-secondary/50 px-4 py-2 rounded-lg border border-accent-gray">
+                <span class="text-light-gray font-bold">{{ stats.total_reports }}</span> Total Tasks
+            </div>
+            <div class="bg-bg-secondary/50 px-4 py-2 rounded-lg border border-accent-gray pulse">
+                <span class="text-light-gray font-bold">●</span> Online
+            </div>
+        </div>
+    </div>
+
+    <!-- Statistics Grid -->
+    <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div class="stat-card slide-in">
+            <div class="stat-number text-light-gray">{{ stats.sessions_count }}</div>
+            <div class="stat-label">Active Sessions</div>
+            <div class="w-full bg-bg-secondary rounded-full h-2 mt-3">
+                <div class="progress-bar" style="width: 85%"></div>
+            </div>
+        </div>
+        <div class="stat-card slide-in">
+            <div class="stat-number text-light-gray">{{ stats.total_reports }}</div>
+            <div class="stat-label">Total Tasks</div>
+            <div class="w-full bg-bg-secondary rounded-full h-2 mt-3">
+                <div class="progress-bar" style="width: 92%"></div>
+            </div>
+        </div>
+        <div class="stat-card slide-in">
+            <div class="stat-number text-light-gray">{{ stats.successful }}</div>
+            <div class="stat-label">Successful</div>
+            <div class="w-full bg-bg-secondary rounded-full h-2 mt-3">
+                <div class="progress-bar" style="width: 78%"></div>
+            </div>
+        </div>
+        <div class="stat-card slide-in">
+            <div class="stat-number text-light-gray">{{ stats.failed }}</div>
+            <div class="stat-label">Failed</div>
+            <div class="w-full bg-bg-secondary rounded-full h-2 mt-3">
+                <div class="progress-bar" style="width: 22%"></div>
+            </div>
+        </div>
+    </div>
+        
+    <!-- Session Management -->
+    <div id="sessions" class="grid lg:grid-cols-2 gap-8">
+        <!-- Upload Sessions -->
+        <div class="card">
+            <h2 class="text-2xl font-bold mb-6 text-light-gray flex items-center gap-3">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+                </svg>
+                Upload Sessions
+            </h2>
+            <form id="upload-form" enctype="multipart/form-data" class="space-y-6">
+                <div class="form-group">
+                    <label class="form-label text-neon-purple">Session Files</label>
+                    <input type="file" name="files" multiple accept=".session" required class="input border-neon-electric/50 focus:border-neon-electric">
+                </div>
+                <button type="submit" class="btn w-full">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10"></path>
+                    </svg>
+                    Upload Sessions
+                </button>
+            </form>
+            <div id="upload-alert" class="mt-4 hidden"></div>
+        </div>
+
+        <!-- Add Session by Phone -->
+        <div class="card">
+            <h2 class="text-2xl font-bold mb-6 text-light-gray flex items-center gap-3">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
+                </svg>
+                Add Session by Phone
+            </h2>
+            <div id="auth-step-1" class="space-y-6">
+                <div class="form-group">
+                    <label class="form-label text-neon-electric">Phone Number</label>
+                    <input type="text" id="auth-phone" placeholder="+1234567890" required class="input border-neon-purple/50 focus:border-neon-purple">
+                </div>
+                <button onclick="startAuth()" class="btn btn-success w-full">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path>
+                    </svg>
+                    Send Code
+                </button>
+            </div>
+
+            <div id="auth-step-2" class="space-y-6 hidden">
+                <div class="form-group">
+                    <label class="form-label text-neon-lime">Verification Code</label>
+                    <input type="text" id="auth-code" placeholder="12345" required class="input border-neon-lime/50 focus:border-neon-lime">
+                </div>
+                <button onclick="verifyCode()" class="btn btn-success w-full">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                    Verify Code
+                </button>
+                <button onclick="resetAuth()" class="btn-outline w-full">← Back</button>
+            </div>
+
+            <div id="auth-step-3" class="space-y-6 hidden">
+                <div class="form-group">
+                    <label class="form-label text-neon-purple">2FA Password</label>
+                    <input type="password" id="auth-2fa" placeholder="Enter 2FA password" required class="input border-neon-purple/50 focus:border-neon-purple">
+                </div>
+                <button onclick="verify2FA()" class="btn btn-success w-full">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+                    </svg>
+                    Verify 2FA
+                </button>
+                <button onclick="resetAuth()" class="btn-outline w-full">← Back</button>
+            </div>
+
+            <div id="auth-alert" class="mt-4 hidden"></div>
+        </div>
+    </div>
+        
+        <!-- Task Forms Container -->
+    <div id="tasks" class="card">
+       <h3 class="text-2xl font-bold mb-6 text-accent-color">Управление задачами</h3>
+
+       <!-- Task Navigation -->
+       <div class="mb-6">
+           <div class="flex flex-wrap gap-2">
+               <button onclick="showTaskTab('report')" class="btn btn-outline active" data-tab="report">Reports</button>
+               <button onclick="showTaskTab('spam')" class="btn btn-outline" data-tab="spam">Spam</button>
+               <button onclick="showTaskTab('vote')" class="btn btn-outline" data-tab="vote">Vote</button>
+               <button onclick="showTaskTab('join')" class="btn btn-outline" data-tab="join">Join/Leave</button>
+               <button onclick="showTaskTab('broadcast')" class="btn btn-outline" data-tab="broadcast">Broadcast</button>
+               <button onclick="showTaskTab('forward')" class="btn btn-outline" data-tab="forward">Forward</button>
+               <button onclick="showTaskTab('interact')" class="btn btn-outline" data-tab="interact">Interact</button>
+               <button onclick="showTaskTab('parse')" class="btn btn-outline" data-tab="parse">Parse</button>
+               <button onclick="showTaskTab('monitor')" class="btn btn-outline" data-tab="monitor">Monitor</button>
+               <button onclick="showTaskTab('invite')" class="btn btn-outline" data-tab="invite">Invite</button>
+               <button onclick="showTaskTab('react')" class="btn btn-outline" data-tab="react">React</button>
+               <button onclick="showTaskTab('delete')" class="btn btn-outline" data-tab="delete">Delete</button>
+           </div>
+       </div>
+
+       <!-- Report Task Tab -->
+            <div id="task-tab-report" class="task-tab">
+                <h4 class="text-xl font-bold mb-4 text-accent-color">Жалоба на пост</h4>
+                <form id="task-form" class="space-y-4">
+                    <input type="hidden" name="task_type" value="report">
+                    <div class="form-group">
+                        <label class="form-label">Канал/Пользователь</label>
+                        <input type="text" name="channel" placeholder="@channel или channel_id" required class="input">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">ID постов (через запятую)</label>
+                        <input type="text" name="post_ids" placeholder="123,456,789" required class="input">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Причина жалобы</label>
+                        <select name="reason_num" class="select">
+                            <option value="0">Дети</option>
+                            <option value="1">Авторские права</option>
+                            <option value="2">Фейк</option>
+                            <option value="3">Порнография</option>
+                            <option value="4" selected>Спам</option>
+                            <option value="5">Насилие</option>
+                            <option value="6">Другое</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Комментарий</label>
+                        <textarea name="comment" rows="3" class="textarea"></textarea>
+                    </div>
+                    <button type="submit" class="btn w-full">
+                        Начать задачу жалобы
+                    </button>
+                </form>
+                <div id="task-alert" class="mt-4 hidden"></div>
+            </div>
+            
+            <!-- Spam Task Tab -->
+            <div id="task-tab-spam" class="task-tab hidden">
+                <h2 class="text-2xl font-bold mb-4 text-purple-400">Create Spam Task</h2>
+                <form id="spam-form" class="space-y-4">
+                    <input type="hidden" name="task_type" value="spam">
+                    <div>
+                        <label class="block text-sm font-medium mb-2">Chat Link/ID</label>
+                        <input type="text" name="chat_id" placeholder="@chat or chat_id" required
+                            class="w-full px-4 py-3 bg-black/50 border border-purple-500/30 rounded-lg">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-2">Spam Type</label>
+                        <select name="spam_type" class="w-full px-4 py-3 bg-black/50 border border-purple-500/30 rounded-lg">
+                            <option value="1">Text from args.txt</option>
+                            <option value="2">Text from config.toml</option>
+                            <option value="3">Media files from raidfiles</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-2">Speed (ms)</label>
+                        <input type="number" name="speed" placeholder="1000" value="1000" required
+                            class="w-full px-4 py-3 bg-black/50 border border-purple-500/30 rounded-lg">
+                    </div>
+                    <div>
+                        <label class="flex items-center gap-2">
+                            <input type="checkbox" name="mentions" class="w-4 h-4">
+                            <span>Tag users</span>
+                        </label>
+                    </div>
+                    <button type="submit" class="btn-neon w-full py-3 rounded-lg text-white font-bold">
+                        Start Spam Task
+                    </button>
+                </form>
+                <div id="spam-alert" class="mt-4 hidden"></div>
+            </div>
+            
+            <!-- Vote Task Tab -->
+            <div id="task-tab-vote" class="task-tab hidden">
+                <h2 class="text-2xl font-bold mb-4 text-purple-400">Create Vote Task</h2>
+                <form id="vote-form" class="space-y-4">
+                    <input type="hidden" name="task_type" value="vote">
+                    <div>
+                        <label class="block text-sm font-medium mb-2">Poll Link</label>
+                        <input type="text" name="poll_link" placeholder="https://t.me/channel/123" required
+                            class="w-full px-4 py-3 bg-black/50 border border-purple-500/30 rounded-lg">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-2">Options (comma separated, e.g. 1,2,3)</label>
+                        <input type="text" name="options" placeholder="1,2" required
+                            class="w-full px-4 py-3 bg-black/50 border border-purple-500/30 rounded-lg">
+                    </div>
+                    <button type="submit" class="btn-neon w-full py-3 rounded-lg text-white font-bold">
+                        Start Vote Task
+                    </button>
+                </form>
+                <div id="vote-alert" class="mt-4 hidden"></div>
+            </div>
+            
+            <!-- Join/Leave Task Tab -->
+            <div id="task-tab-join" class="task-tab hidden">
+                <h2 class="text-2xl font-bold mb-4 text-purple-400">Create Join/Leave Task</h2>
+                <form id="join-form" class="space-y-4">
+                    <input type="hidden" name="task_type" value="join">
+                    <div>
+                        <label class="block text-sm font-medium mb-2">Chat Link</label>
+                        <input type="text" name="chat_link" placeholder="https://t.me/chat" required
+                            class="w-full px-4 py-3 bg-black/50 border border-purple-500/30 rounded-lg">
+                    </div>
+                    <div>
+                        <label class="flex items-center gap-2">
+                            <input type="checkbox" name="has_captcha" class="w-4 h-4">
+                            <span>Has Captcha</span>
+                        </label>
+                    </div>
+                    <button type="submit" class="btn-neon w-full py-3 rounded-lg text-white font-bold">
+                        Start Join/Leave Task
+                    </button>
+                </form>
+                <div id="join-alert" class="mt-4 hidden"></div>
+            </div>
+            
+            <!-- Broadcast Task Tab -->
+            <div id="task-tab-broadcast" class="task-tab hidden">
+                <h2 class="text-2xl font-bold mb-4 text-purple-400">Create Broadcast Task</h2>
+                <form id="broadcast-form" class="space-y-4">
+                    <input type="hidden" name="task_type" value="broadcast">
+                    <div>
+                        <label class="block text-sm font-medium mb-2">Chat IDs (one per line or comma separated)</label>
+                        <textarea name="chat_ids" rows="5" placeholder="@chat1&#10;@chat2&#10;https://t.me/channel" required
+                            class="w-full px-4 py-3 bg-black/50 border border-purple-500/30 rounded-lg"></textarea>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-2">Message Text</label>
+                        <textarea name="message_text" rows="4" placeholder="Your message here" required
+                            class="w-full px-4 py-3 bg-black/50 border border-purple-500/30 rounded-lg"></textarea>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-2">File (optional)</label>
+                        <input type="file" name="file" accept="image/*,video/*,audio/*,application/*"
+                            class="w-full px-4 py-3 bg-black/50 border border-purple-500/30 rounded-lg">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-2">Delay between messages (seconds)</label>
+                        <input type="number" name="delay" value="1.0" step="0.1" min="0.1"
+                            class="w-full px-4 py-3 bg-black/50 border border-purple-500/30 rounded-lg">
+                    </div>
+                    <button type="submit" class="btn-neon w-full py-3 rounded-lg text-white font-bold">
+                        Start Broadcast Task
+                    </button>
+                </form>
+                <div id="broadcast-alert" class="mt-4 hidden"></div>
+            </div>
+            
+            <!-- Forward Task Tab -->
+            <div id="task-tab-forward" class="task-tab hidden">
+                <h2 class="text-2xl font-bold mb-4 text-purple-400">Create Forward Task</h2>
+                <p class="text-sm text-gray-400 mb-4">Пересылает сообщения из указанного канала во все публичные чаты аккаунтов</p>
+                <form id="forward-form" class="space-y-4">
+                    <input type="hidden" name="task_type" value="forward">
+                    <div>
+                        <label class="block text-sm font-medium mb-2">From Chat/Channel</label>
+                        <input type="text" name="from_chat" placeholder="@source_channel" required
+                            class="w-full px-4 py-3 bg-black/50 border border-purple-500/30 rounded-lg">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-2">Message IDs (comma separated)</label>
+                        <input type="text" name="message_ids" placeholder="123,456,789" required
+                            class="w-full px-4 py-3 bg-black/50 border border-purple-500/30 rounded-lg">
+                    </div>
+                    <button type="submit" class="btn-neon w-full py-3 rounded-lg text-white font-bold">
+                        Start Forward Task
+                    </button>
+                </form>
+                <div id="forward-alert" class="mt-4 hidden"></div>
+            </div>
+            
+            <!-- Interact Task Tab -->
+            <div id="task-tab-interact" class="task-tab hidden">
+                <h2 class="text-2xl font-bold mb-4 text-purple-400">Create Like/Comment Task</h2>
+                <form id="interact-form" class="space-y-4">
+                    <input type="hidden" name="task_type" value="interact">
+                    <div>
+                        <label class="block text-sm font-medium mb-2">Chat/Channel</label>
+                        <input type="text" name="chat_id" placeholder="@channel" required
+                            class="w-full px-4 py-3 bg-black/50 border border-purple-500/30 rounded-lg">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-2">Message IDs (comma separated)</label>
+                        <input type="text" name="message_ids" placeholder="123,456,789" required
+                            class="w-full px-4 py-3 bg-black/50 border border-purple-500/30 rounded-lg">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-2">Action Type</label>
+                        <select name="action_type" class="w-full px-4 py-3 bg-black/50 border border-purple-500/30 rounded-lg">
+                            <option value="like">Like</option>
+                            <option value="comment">Comment</option>
+                            <option value="both">Like + Comment</option>
+                        </select>
+                    </div>
+                    <div id="comment-field" class="hidden">
+                        <label class="block text-sm font-medium mb-2">Comment Text</label>
+                        <textarea name="comment_text" rows="3" placeholder="Your comment"
+                            class="w-full px-4 py-3 bg-black/50 border border-purple-500/30 rounded-lg"></textarea>
+                    </div>
+                    <button type="submit" class="btn-neon w-full py-3 rounded-lg text-white font-bold">
+                        Start Interact Task
+                    </button>
+                </form>
+                <div id="interact-alert" class="mt-4 hidden"></div>
+            </div>
+            
+            <!-- Parse Task Tab -->
+            <div id="task-tab-parse" class="task-tab hidden">
+                <h2 class="text-2xl font-bold mb-4 text-purple-400">Create Parse Task</h2>
+                <form id="parse-form" class="space-y-4">
+                    <input type="hidden" name="task_type" value="parse">
+                    <div>
+                        <label class="block text-sm font-medium mb-2">Parse Type</label>
+                        <select name="parse_type" class="w-full px-4 py-3 bg-black/50 border border-purple-500/30 rounded-lg">
+                            <option value="users">Parse Users</option>
+                            <option value="messages">Parse Messages</option>
+                            <option value="chats">Parse My Chats</option>
+                        </select>
+                    </div>
+                    <div id="parse-chat-field">
+                        <label class="block text-sm font-medium mb-2">Chat/Channel (for users/messages)</label>
+                        <input type="text" name="chat_id" placeholder="@channel"
+                            class="w-full px-4 py-3 bg-black/50 border border-purple-500/30 rounded-lg">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-2">Limit</label>
+                        <input type="number" name="limit" value="100" min="1" max="10000"
+                            class="w-full px-4 py-3 bg-black/50 border border-purple-500/30 rounded-lg">
+                    </div>
+                    <button type="submit" class="btn-neon w-full py-3 rounded-lg text-white font-bold">
+                        Start Parse Task
+                    </button>
+                </form>
+                <div id="parse-alert" class="mt-4 hidden"></div>
+            </div>
+            
+            <!-- Monitor Task Tab -->
+            <div id="task-tab-monitor" class="task-tab hidden">
+                <h2 class="text-2xl font-bold mb-4 text-purple-400">Create Monitor Task</h2>
+                <form id="monitor-form" class="space-y-4">
+                    <input type="hidden" name="task_type" value="monitor">
+                    <div>
+                        <label class="block text-sm font-medium mb-2">Chat/Channel to Monitor</label>
+                        <input type="text" name="chat_id" placeholder="@channel" required
+                            class="w-full px-4 py-3 bg-black/50 border border-purple-500/30 rounded-lg">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-2">Keywords (comma separated, optional)</label>
+                        <input type="text" name="keywords" placeholder="keyword1,keyword2"
+                            class="w-full px-4 py-3 bg-black/50 border border-purple-500/30 rounded-lg">
+                    </div>
+                    <p class="text-sm text-gray-400">Monitor will run in background and notify you about new messages</p>
+                    <button type="submit" class="btn-neon w-full py-3 rounded-lg text-white font-bold">
+                        Start Monitor Task
+                    </button>
+                </form>
+                <div id="monitor-alert" class="mt-4 hidden"></div>
+            </div>
+
+            <!-- Invite Task Tab -->
+            <div id="task-tab-invite" class="task-tab hidden">
+                <h2 class="text-2xl font-bold mb-4 text-purple-400">Create Invite Task</h2>
+                <form id="invite-form" class="space-y-4">
+                    <input type="hidden" name="task_type" value="invite">
+                    <div>
+                        <label class="block text-sm font-medium mb-2">Chat/Channel</label>
+                        <input type="text" name="chat_id" placeholder="@channel" required
+                            class="w-full px-4 py-3 bg-black/50 border border-purple-500/30 rounded-lg">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-2">User IDs (comma separated)</label>
+                        <input type="text" name="user_ids" placeholder="123456789,987654321" required
+                            class="w-full px-4 py-3 bg-black/50 border border-purple-500/30 rounded-lg">
+                    </div>
+                    <button type="submit" class="btn-neon w-full py-3 rounded-lg text-white font-bold">
+                        Start Invite Task
+                    </button>
+                </form>
+                <div id="invite-alert" class="mt-4 hidden"></div>
+            </div>
+
+            <!-- React Task Tab -->
+            <div id="task-tab-react" class="task-tab hidden">
+                <h2 class="text-2xl font-bold mb-4 text-purple-400">Create React Task</h2>
+                <form id="react-form" class="space-y-4">
+                    <input type="hidden" name="task_type" value="react">
+                    <div>
+                        <label class="block text-sm font-medium mb-2">Chat/Channel</label>
+                        <input type="text" name="chat_id" placeholder="@channel" required
+                            class="w-full px-4 py-3 bg-black/50 border border-purple-500/30 rounded-lg">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-2">Message IDs (comma separated)</label>
+                        <input type="text" name="message_ids" placeholder="123,456,789" required
+                            class="w-full px-4 py-3 bg-black/50 border border-purple-500/30 rounded-lg">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-2">Reaction</label>
+                        <select name="reaction" class="w-full px-4 py-3 bg-black/50 border border-purple-500/30 rounded-lg">
+                            <option value="👍">👍 Like</option>
+                            <option value="❤️">❤️ Heart</option>
+                            <option value="😂">😂 Laugh</option>
+                            <option value="😮">😮 Wow</option>
+                            <option value="😢">😢 Sad</option>
+                            <option value="😡">😡 Angry</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="btn-neon w-full py-3 rounded-lg text-white font-bold">
+                        Start React Task
+                    </button>
+                </form>
+                <div id="react-alert" class="mt-4 hidden"></div>
+            </div>
+
+            <!-- Delete Task Tab -->
+            <div id="task-tab-delete" class="task-tab hidden">
+                <h2 class="text-2xl font-bold mb-4 text-purple-400">Create Delete Task</h2>
+                <form id="delete-form" class="space-y-4">
+                    <input type="hidden" name="task_type" value="delete">
+                    <div>
+                        <label class="block text-sm font-medium mb-2">Chat/Channel</label>
+                        <input type="text" name="chat_id" placeholder="@channel" required
+                            class="w-full px-4 py-3 bg-black/50 border border-purple-500/30 rounded-lg">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-2">Message IDs (comma separated)</label>
+                        <input type="text" name="message_ids" placeholder="123,456,789" required
+                            class="w-full px-4 py-3 bg-black/50 border border-purple-500/30 rounded-lg">
+                    </div>
+                    <button type="submit" class="btn-neon w-full py-3 rounded-lg text-white font-bold">
+                        Start Delete Task
+                    </button>
+                </form>
+                <div id="delete-alert" class="mt-4 hidden"></div>
+            </div>
+
+           </div>
+       </div>
+
+       <!-- Statistics Chart -->
+        <div class="card">
+            <h2 class="text-2xl font-bold mb-4 text-accent-color">Статистика</h2>
+            <div class="grid md:grid-cols-2 gap-6">
+                <div>
+                    <canvas id="statsChart"></canvas>
+                </div>
+                <div class="space-y-4">
+                    <div class="bg-secondary-bg p-4 rounded-lg">
+                        <h3 class="text-lg font-bold text-accent-color mb-2">Активность сегодня</h3>
+                        <div class="space-y-2 text-sm">
+                            <div class="flex justify-between">
+                                <span class="text-text-muted">Действий:</span>
+                                <span class="text-accent-color" id="today-actions">0</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-text-muted">Успешность:</span>
+                                <span class="text-success-color" id="success-rate">0%</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Sessions List -->
+        <div class="card">
+            <h2 class="text-2xl font-bold mb-4 text-accent-color">Ваши сессии</h2>
+            <div class="overflow-x-auto">
+                <table class="w-full">
+                    <thead>
+                        <tr class="border-b border-border-color">
+                            <th class="text-left py-3 text-text-secondary">Файл</th>
+                            <th class="text-left py-3 text-text-secondary">Статус</th>
+                            <th class="text-left py-3 text-text-secondary">Создан</th>
+                            <th class="text-left py-3 text-text-secondary">Действия</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for session in sessions %}
+                        <tr class="border-b border-border-color/50">
+                            <td class="py-3">{{ session.filename }}</td>
+                            <td class="py-3">
+                                <span class="px-2 py-1 rounded text-xs
+                                    {% if session.status.value == 'online' %}bg-success-color/20 text-success-color
+                                    {% elif session.status.value == 'offline' %}bg-text-muted/20 text-text-muted
+                                    {% else %}bg-error-color/20 text-error-color{% endif %}">
+                                    {{ session.status.value|upper }}
+                                </span>
+                            </td>
+                            <td class="py-3 text-text-muted">{{ session.created_at.strftime('%Y-%m-%d') }}</td>
+                            <td class="py-3">
+                                <button onclick="deleteSession('{{ session.id }}')"
+                                    class="btn-outline btn-danger">
+                                    Удалить
+                                </button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <!-- Tasks History -->
+        <div class="card">
+            <h2 class="text-2xl font-bold mb-4 text-accent-color">Недавние задачи</h2>
+            <div class="space-y-4">
+                {% for task in tasks %}
+                <div class="bg-secondary-bg p-4 rounded-lg border border-border-color">
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="font-bold text-text-primary">{{ task.task_type|upper }}</span>
+                        <span class="px-2 py-1 rounded text-xs
+                            {% if task.status.value == 'completed' %}bg-success-color/20 text-success-color
+                            {% elif task.status.value == 'running' %}bg-blue-400/20 text-blue-400
+                            {% elif task.status.value == 'failed' %}bg-error-color/20 text-error-color
+                            {% else %}bg-text-muted/20 text-text-muted{% endif %}">
+                            {{ task.status.value|upper }}
+                        </span>
+                    </div>
+                    <div class="grid md:grid-cols-3 gap-4 text-sm text-text-muted">
+                        <div>Канал: {{ task.channel }}</div>
+                        <div>Всего: {{ task.total_reports }}</div>
+                        <div>Успешно: {{ task.successful_reports }} / Неудачно: {{ task.failed_reports }}</div>
+                    </div>
+                    {% if task.logs %}
+                        <div class="mt-2 text-sm text-text-secondary">
+                            Логи: {{ task.logs }}
+                        </div>
+                    {% endif %}
+                    {% if task.status.value == 'running' %}
+                    <div class="mt-2">
+                        <div class="w-full bg-secondary-bg rounded-full h-2">
+                            <div class="bg-accent-color h-2 rounded-full" style="width: 50%"></div>
+                        </div>
+                    </div>
+                    {% endif %}
+                    {% if task.task_type == 'parse' and task.status.value == 'completed' %}
+                    <div class="mt-4 flex gap-2">
+                        <a href="/api/task/{{ task.id }}/export?format=json" target="_blank"
+                            class="btn btn-outline">
+                            Экспорт JSON
+                        </a>
+                        <a href="/api/task/{{ task.id }}/export?format=csv" target="_blank"
+                            class="btn btn-success">
+                            Экспорт CSV
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Blacklist Section -->
+        <div id="blacklist" class="card">
+            <h2 class="text-2xl font-bold mb-4 text-accent-color">Blacklist</h2>
+            <p class="text-text-muted">Blacklist management coming soon...</p>
+        </div>
+
+        <!-- Scripts Section -->
+
+        <!-- Logs Section -->
+        <div id="logs" class="card">
+            <h2 class="text-2xl font-bold mb-4 text-accent-color">Logs</h2>
+            <p class="text-text-muted">System logs coming soon...</p>
+        </div>
+
+        <!-- Subscription Request Modal -->
+        <div id="subscription-modal" class="hidden fixed inset-0 bg-black/80 flex items-center justify-center z-50">
+            <div class="card max-w-md w-full mx-4">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-2xl font-bold text-accent-color">Запрос подписки</h2>
+                    <button onclick="document.getElementById('subscription-modal').classList.add('hidden')"
+                        class="text-text-muted hover:text-text-primary">✕</button>
+                </div>
+                <form id="subscription-request-form" class="space-y-4">
+                    <div class="form-group">
+                        <label class="form-label">Выберите план</label>
+                        <select name="tier" required class="select">
+                            {% for plan in plans %}
+                            {% if plan.tier != user.subscription_tier %}
+                            <option value="{{ plan.tier.value }}">{{ plan.name }} - ${{ plan.price_monthly }}/месяц</option>
+                            {% endif %}
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Сообщение владельцу</label>
+                        <textarea name="message" rows="4" placeholder="Напишите ваше сообщение (например, подтверждение оплаты)" required
+                            class="textarea"></textarea>
+                    </div>
+                    <button type="submit" class="btn w-full">
+                        Отправить запрос
+                    </button>
+                </form>
+                <div id="subscription-alert" class="mt-4 hidden"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Subscription request
+    document.getElementById('subscription-request-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const formData = new FormData(e.target);
+        const data = {
+            tier: formData.get('tier'),
+            message: formData.get('message')
+        };
+        const alert = document.getElementById('subscription-alert');
+        
+        try {
+            const res = await fetch('/api/request-subscription', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                body: new URLSearchParams(data)
+            });
+            const result = await res.json();
+            
+            alert.className = result.success ? 'bg-green-500/20 border border-green-500 text-green-400 px-4 py-3 rounded' : 'bg-red-500/20 border border-red-500 text-red-400 px-4 py-3 rounded';
+            alert.textContent = result.message || result.error;
+            alert.classList.remove('hidden');
+            
+            if (result.success) {
+                setTimeout(() => {
+                    document.getElementById('subscription-modal').classList.add('hidden');
+                    location.reload();
+                }, 2000);
+            }
+        } catch (error) {
+            alert.className = 'bg-red-500/20 border border-red-500 text-red-400 px-4 py-3 rounded';
+            alert.textContent = 'Error: ' + error.message;
+            alert.classList.remove('hidden');
+        }
+    });
+</script>
+
+<script>
+    // Task form switching
+    function showTaskTab(tabName) {
+        // Hide all task forms
+        document.querySelectorAll('.task-tab').forEach(tab => tab.classList.add('hidden'));
+        // Show selected form
+        const form = document.getElementById(`task-tab-${tabName}`);
+        if (form) {
+            form.classList.remove('hidden');
+        }
+
+        // Update active navigation button
+        document.querySelectorAll('[data-tab]').forEach(btn => btn.classList.remove('active'));
+        const activeBtn = document.querySelector(`[data-tab="${tabName}"]`);
+        if (activeBtn) {
+            activeBtn.classList.add('active');
+        }
+
+        // Update sidebar active item
+        document.querySelectorAll('.sidebar-item.active').forEach(item => {
+            item.classList.remove('active');
+        });
+        const sidebarBtn = document.querySelector(`.sidebar-item[onclick*="showTaskTab('${tabName}')"]`);
+        if (sidebarBtn) {
+            sidebarBtn.classList.add('active');
+        }
+    }
+    
+    // Upload sessions
+    document.getElementById('upload-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const formData = new FormData(e.target);
+        const alert = document.getElementById('upload-alert');
+        
+        try {
+            const res = await fetch('/api/upload-sessions', {
+                method: 'POST',
+                body: formData
+            });
+            const data = await res.json();
+            
+            alert.className = data.success ? 'bg-green-500/20 border border-green-500 text-green-400 px-4 py-3 rounded' : 'bg-red-500/20 border border-red-500 text-red-400 px-4 py-3 rounded';
+            alert.textContent = data.message || data.error;
+            alert.classList.remove('hidden');
+            
+            if (data.success) {
+                setTimeout(() => location.reload(), 1500);
+            }
+        } catch (error) {
+            alert.className = 'bg-red-500/20 border border-red-500 text-red-400 px-4 py-3 rounded';
+            alert.textContent = 'Error: ' + error.message;
+            alert.classList.remove('hidden');
+        }
+    });
+    
+    // Create task
+    document.getElementById('task-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const formData = new FormData(e.target);
+        const data = {
+            task_type: 'report',
+            channel: formData.get('channel'),
+            post_ids: JSON.stringify(formData.get('post_ids').split(',').map(id => parseInt(id.trim()))),
+            comment: formData.get('comment'),
+            reason_num: parseInt(formData.get('reason_num')),
+            threads: 1
+        };
+        const alert = document.getElementById('task-alert');
+        
+        try {
+            const res = await fetch('/api/create-task', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(data)
+            });
+            const result = await res.json();
+            
+            alert.className = result.success ? 'bg-green-500/20 border border-green-500 text-green-400 px-4 py-3 rounded' : 'bg-red-500/20 border border-red-500 text-red-400 px-4 py-3 rounded';
+            alert.textContent = result.message || result.error;
+            alert.classList.remove('hidden');
+            
+            if (result.success) {
+                setTimeout(() => location.reload(), 1500);
+            }
+        } catch (error) {
+            alert.className = 'bg-red-500/20 border border-red-500 text-red-400 px-4 py-3 rounded';
+            alert.textContent = 'Error: ' + error.message;
+            alert.classList.remove('hidden');
+        }
+    });
+    
+    // Spam form
+    document.getElementById('spam-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const formData = new FormData(e.target);
+        const data = {
+            task_type: 'spam',
+            chat_id: formData.get('chat_id'),
+            spam_type: parseInt(formData.get('spam_type')),
+            speed: parseInt(formData.get('speed')),
+            mentions: formData.get('mentions') === 'on'
+        };
+        const alert = document.getElementById('spam-alert');
+        
+        try {
+            const res = await fetch('/api/create-task', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(data)
+            });
+            const result = await res.json();
+            
+            alert.className = result.success ? 'bg-green-500/20 border border-green-500 text-green-400 px-4 py-3 rounded' : 'bg-red-500/20 border border-red-500 text-red-400 px-4 py-3 rounded';
+            alert.textContent = result.message || result.error;
+            alert.classList.remove('hidden');
+            
+            if (result.success) {
+                setTimeout(() => location.reload(), 1500);
+            }
+        } catch (error) {
+            alert.className = 'bg-red-500/20 border border-red-500 text-red-400 px-4 py-3 rounded';
+            alert.textContent = 'Error: ' + error.message;
+            alert.classList.remove('hidden');
+        }
+    });
+    
+    // Vote form
+    document.getElementById('vote-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const formData = new FormData(e.target);
+        const data = {
+            task_type: 'vote',
+            poll_link: formData.get('poll_link'),
+            options: formData.get('options')
+        };
+        const alert = document.getElementById('vote-alert');
+        
+        try {
+            const res = await fetch('/api/create-task', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(data)
+            });
+            const result = await res.json();
+            
+            alert.className = result.success ? 'bg-green-500/20 border border-green-500 text-green-400 px-4 py-3 rounded' : 'bg-red-500/20 border border-red-500 text-red-400 px-4 py-3 rounded';
+            alert.textContent = result.message || result.error;
+            alert.classList.remove('hidden');
+            
+            if (result.success) {
+                setTimeout(() => location.reload(), 1500);
+            }
+        } catch (error) {
+            alert.className = 'bg-red-500/20 border border-red-500 text-red-400 px-4 py-3 rounded';
+            alert.textContent = 'Error: ' + error.message;
+            alert.classList.remove('hidden');
+        }
+    });
+    
+    // Join form
+    document.getElementById('join-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const formData = new FormData(e.target);
+        const data = {
+            task_type: 'join',
+            chat_link: formData.get('chat_link'),
+            has_captcha: formData.get('has_captcha') === 'on'
+        };
+        const alert = document.getElementById('join-alert');
+        
+        try {
+            const res = await fetch('/api/create-task', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(data)
+            });
+            const result = await res.json();
+            
+            alert.className = result.success ? 'bg-green-500/20 border border-green-500 text-green-400 px-4 py-3 rounded' : 'bg-red-500/20 border border-red-500 text-red-400 px-4 py-3 rounded';
+            alert.textContent = result.message || result.error;
+            alert.classList.remove('hidden');
+            
+            if (result.success) {
+                setTimeout(() => location.reload(), 1500);
+            }
+        } catch (error) {
+            alert.className = 'bg-red-500/20 border border-red-500 text-red-400 px-4 py-3 rounded';
+            alert.textContent = 'Error: ' + error.message;
+            alert.classList.remove('hidden');
+        }
+    });
+    
+    // Broadcast form
+    document.getElementById('broadcast-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const formData = new FormData(e.target);
+        const chatIds = formData.get('chat_ids').split(/[,\n]/).map(s => s.trim()).filter(s => s);
+        const data = {
+            task_type: 'broadcast',
+            chat_ids: chatIds,
+            message_text: formData.get('message_text'),
+            delay: parseFloat(formData.get('delay') || 1.0)
+        };
+        const file = formData.get('file');
+        if (file && file.size > 0) {
+            data.file = file.name;
+        }
+        await submitTaskForm(data, 'broadcast-alert');
+    });
+    
+    // Forward form
+    document.getElementById('forward-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const formData = new FormData(e.target);
+        const data = {
+            task_type: 'forward',
+            from_chat: formData.get('from_chat'),
+            message_ids: formData.get('message_ids').split(',').map(id => parseInt(id.trim()))
+        };
+        await submitTaskForm(data, 'forward-alert');
+    });
+    
+    // Interact form
+    document.getElementById('interact-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const formData = new FormData(e.target);
+        const data = {
+            task_type: 'interact',
+            chat_id: formData.get('chat_id'),
+            message_ids: formData.get('message_ids').split(',').map(id => parseInt(id.trim())),
+            action_type: formData.get('action_type'),
+            comment_text: formData.get('comment_text') || ''
+        };
+        await submitTaskForm(data, 'interact-alert');
+    });
+    
+    // Show/hide comment field
+    document.querySelector('#interact-form select[name="action_type"]').addEventListener('change', (e) => {
+        const commentField = document.getElementById('comment-field');
+        if (e.target.value === 'comment' || e.target.value === 'both') {
+            commentField.classList.remove('hidden');
+        } else {
+            commentField.classList.add('hidden');
+        }
+    });
+    
+    // Parse form
+    document.getElementById('parse-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const formData = new FormData(e.target);
+        const data = {
+            task_type: 'parse',
+            parse_type: formData.get('parse_type'),
+            chat_id: formData.get('chat_id') || '',
+            limit: parseInt(formData.get('limit') || 100)
+        };
+        await submitTaskForm(data, 'parse-alert');
+    });
+    
+    // Show/hide chat field for parse
+    document.querySelector('#parse-form select[name="parse_type"]').addEventListener('change', (e) => {
+        const chatField = document.getElementById('parse-chat-field');
+        if (e.target.value === 'chats') {
+            chatField.classList.add('hidden');
+        } else {
+            chatField.classList.remove('hidden');
+        }
+    });
+    
+    // Monitor form
+    document.getElementById('monitor-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const formData = new FormData(e.target);
+        const keywords = formData.get('keywords') ? formData.get('keywords').split(',').map(k => k.trim()) : [];
+        const data = {
+            task_type: 'monitor',
+            chat_id: formData.get('chat_id'),
+            keywords: keywords
+        };
+        await submitTaskForm(data, 'monitor-alert');
+    });
+
+    // Invite form
+    document.getElementById('invite-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const formData = new FormData(e.target);
+        const data = {
+            task_type: 'invite',
+            chat_id: formData.get('chat_id'),
+            user_ids: formData.get('user_ids').split(',').map(id => id.trim())
+        };
+        await submitTaskForm(data, 'invite-alert');
+    });
+
+    // React form
+    document.getElementById('react-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const formData = new FormData(e.target);
+        const data = {
+            task_type: 'react',
+            chat_id: formData.get('chat_id'),
+            message_ids: formData.get('message_ids').split(',').map(id => parseInt(id.trim())),
+            reaction: formData.get('reaction')
+        };
+        await submitTaskForm(data, 'react-alert');
+    });
+
+    // Delete form
+    document.getElementById('delete-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const formData = new FormData(e.target);
+        const data = {
+            task_type: 'delete',
+            chat_id: formData.get('chat_id'),
+            message_ids: formData.get('message_ids').split(',').map(id => parseInt(id.trim()))
+        };
+        await submitTaskForm(data, 'delete-alert');
+    });
+
+    
+    // Helper function to submit task forms
+    async function submitTaskForm(data, alertId) {
+        const alert = document.getElementById(alertId);
+        try {
+            const res = await fetch('/api/create-task', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(data)
+            });
+            const result = await res.json();
+            
+            alert.className = result.success ? 'bg-green-500/20 border border-green-500 text-green-400 px-4 py-3 rounded' : 'bg-red-500/20 border border-red-500 text-red-400 px-4 py-3 rounded';
+            alert.textContent = result.message || result.error || (result.success ? 'Task created successfully!' : 'Error creating task');
+            alert.classList.remove('hidden');
+            
+            if (result.success) {
+                setTimeout(() => location.reload(), 1500);
+            }
+        } catch (error) {
+            alert.className = 'bg-red-500/20 border border-red-500 text-red-400 px-4 py-3 rounded';
+            alert.textContent = 'Error: ' + error.message;
+            alert.classList.remove('hidden');
+        }
+    }
+    
+    // Initialize chart
+    const ctx = document.getElementById('statsChart');
+    if (ctx) {
+        new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Successful', 'Failed'],
+                datasets: [{
+                    data: [{{ stats.successful }}, {{ stats.failed }}],
+                    backgroundColor: ['#10b981', '#ef4444'],
+                    borderColor: ['#059669', '#dc2626'],
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: {
+                        labels: { color: '#9ca3af' }
+                    }
+                }
+            }
+        });
+    }
+    
+    // Update today's stats
+    fetch('/api/user-stats')
+        .then(r => r.json())
+        .then(data => {
+            if (data.today_actions !== undefined) {
+                document.getElementById('today-actions').textContent = data.today_actions;
+            }
+            if (data.success_rate !== undefined) {
+                document.getElementById('success-rate').textContent = data.success_rate + '%';
+            }
+        });
+    
+    async function deleteSession(sessionId) {
+        if (!confirm('Delete this session?')) return;
+        
+        try {
+            const res = await fetch(`/api/session/${sessionId}`, {method: 'DELETE'});
+            const data = await res.json();
+            if (data.success) location.reload();
+        } catch (error) {
+            alert('Error: ' + error.message);
+        }
+    }
+    
+    // Phone authentication functions
+    let authState = { step: 1 }; // 1: phone, 2: code, 3: 2fa
+    
+    function resetAuth() {
+        authState = { step: 1 };
+        document.getElementById('auth-step-1').classList.remove('hidden');
+        document.getElementById('auth-step-2').classList.add('hidden');
+        document.getElementById('auth-step-3').classList.add('hidden');
+        document.getElementById('auth-phone').value = '';
+        document.getElementById('auth-code').value = '';
+        document.getElementById('auth-2fa').value = '';
+        document.getElementById('auth-alert').classList.add('hidden');
+    }
+    
+    async function startAuth() {
+        const phone = document.getElementById('auth-phone').value.trim();
+        const alert = document.getElementById('auth-alert');
+        
+        if (!phone) {
+            alert.className = 'bg-red-500/20 border border-red-500 text-red-400 px-4 py-3 rounded mt-4';
+            alert.textContent = 'Please enter phone number';
+            alert.classList.remove('hidden');
+            return;
+        }
+        
+        try {
+            const res = await fetch('/api/auth-session/start', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({phone: phone})
+            });
+            
+            const data = await res.json();
+            
+            if (data.success) {
+                alert.className = 'bg-green-500/20 border border-green-500 text-green-400 px-4 py-3 rounded mt-4';
+                alert.textContent = 'Code sent! Check your phone.';
+                alert.classList.remove('hidden');
+                
+                // Переходим к шагу 2
+                authState.step = 2;
+                document.getElementById('auth-step-1').classList.add('hidden');
+                document.getElementById('auth-step-2').classList.remove('hidden');
+            } else {
+                alert.className = 'bg-red-500/20 border border-red-500 text-red-400 px-4 py-3 rounded mt-4';
+                alert.textContent = 'Error: ' + (data.error || 'Failed to send code');
+                alert.classList.remove('hidden');
+            }
+        } catch (error) {
+            alert.className = 'bg-red-500/20 border border-red-500 text-red-400 px-4 py-3 rounded mt-4';
+            alert.textContent = 'Error: ' + error.message;
+            alert.classList.remove('hidden');
+        }
+    }
+    
+    async function verifyCode() {
+        const code = document.getElementById('auth-code').value.trim();
+        const alert = document.getElementById('auth-alert');
+        
+        if (!code) {
+            alert.className = 'bg-red-500/20 border border-red-500 text-red-400 px-4 py-3 rounded mt-4';
+            alert.textContent = 'Please enter verification code';
+            alert.classList.remove('hidden');
+            return;
+        }
+        
+        try {
+            const res = await fetch('/api/auth-session/verify', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({code: code})
+            });
+            
+            const data = await res.json();
+            
+            if (data.success) {
+                if (data.requires_2fa) {
+                    // Требуется 2FA
+                    alert.className = 'bg-yellow-500/20 border border-yellow-500 text-yellow-400 px-4 py-3 rounded mt-4';
+                    alert.textContent = '2FA password required';
+                    alert.classList.remove('hidden');
+                    
+                    // Переходим к шагу 3
+                    authState.step = 3;
+                    document.getElementById('auth-step-2').classList.add('hidden');
+                    document.getElementById('auth-step-3').classList.remove('hidden');
+                } else {
+                    // Успешно авторизовано
+                    alert.className = 'bg-green-500/20 border border-green-500 text-green-400 px-4 py-3 rounded mt-4';
+                    alert.textContent = 'Session added successfully!';
+                    alert.classList.remove('hidden');
+                    
+                    setTimeout(() => {
+                        location.reload();
+                    }, 1500);
+                }
+            } else {
+                alert.className = 'bg-red-500/20 border border-red-500 text-red-400 px-4 py-3 rounded mt-4';
+                alert.textContent = 'Error: ' + (data.error || 'Failed to verify code');
+                alert.classList.remove('hidden');
+            }
+        } catch (error) {
+            alert.className = 'bg-red-500/20 border border-red-500 text-red-400 px-4 py-3 rounded mt-4';
+            alert.textContent = 'Error: ' + error.message;
+            alert.classList.remove('hidden');
+        }
+    }
+    
+    async function verify2FA() {
+        const password = document.getElementById('auth-2fa').value.trim();
+        const alert = document.getElementById('auth-alert');
+        
+        if (!password) {
+            alert.className = 'bg-red-500/20 border border-red-500 text-red-400 px-4 py-3 rounded mt-4';
+            alert.textContent = 'Please enter 2FA password';
+            alert.classList.remove('hidden');
+            return;
+        }
+        
+        try {
+            const res = await fetch('/api/auth-session/2fa', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({password: password})
+            });
+            
+            const data = await res.json();
+            
+            if (data.success) {
+                alert.className = 'bg-green-500/20 border border-green-500 text-green-400 px-4 py-3 rounded mt-4';
+                alert.textContent = 'Session added successfully!';
+                alert.classList.remove('hidden');
+                
+                setTimeout(() => {
+                    location.reload();
+                }, 1500);
+            } else {
+                alert.className = 'bg-red-500/20 border border-red-500 text-red-400 px-4 py-3 rounded mt-4';
+                alert.textContent = 'Error: ' + (data.error || 'Failed to verify 2FA password');
+                alert.classList.remove('hidden');
+            }
+        } catch (error) {
+            alert.className = 'bg-red-500/20 border border-red-500 text-red-400 px-4 py-3 rounded mt-4';
+            alert.textContent = 'Error: ' + error.message;
+            alert.classList.remove('hidden');
+        }
+    }
+    
+    // Enter key handlers
+    document.getElementById('auth-phone')?.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') startAuth();
+    });
+    document.getElementById('auth-code')?.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') verifyCode();
+    });
+    document.getElementById('auth-2fa')?.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') verify2FA();
+    });
+</script>
+{% endblock %}
+
