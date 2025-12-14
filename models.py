@@ -1,7 +1,7 @@
 from sqlmodel import SQLModel, Field, Relationship
 from typing import Optional, List
 from sqlalchemy.orm import Mapped, relationship
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 import uuid
 
